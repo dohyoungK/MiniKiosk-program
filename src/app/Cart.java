@@ -29,15 +29,16 @@ public class Cart {
         System.out.println("-".repeat(60));
 
 //        여기에 장바구니 상품들을 옵션 정보와 함께 출력
+        printCartItemDetails();
 
         System.out.println("-".repeat(60));
-//        System.out.printf("합계 : %d원\n", 금액 합계);
+        System.out.printf("합계 : %d원\n", calculateTotalPrice());
 
         System.out.println("이전으로 돌아가려면 엔터를 누르세요. ");
         scanner.nextLine();
     }
 
-    private void printCartItemDetails() {
+    protected void printCartItemDetails() {
 
         for (Product product : items) {
             if (product instanceof BurgerSet) {
@@ -49,7 +50,7 @@ public class Cart {
                         burgerSet.getSide().getName(),
                         burgerSet.getSide().getKetchup(),
                         burgerSet.getDrink().getName(),
-                        burgerSet.getDrink().isHasStraw() ? "있음" : "없음"
+                        burgerSet.getDrink().hasStraw() ? "있음" : "없음"
                 );
             }
             else if (product instanceof Hamburger) {
@@ -69,16 +70,16 @@ public class Cart {
             }
             else if (product instanceof Drink) {
                 System.out.printf(
-                        " %-8s %6d원 (빨대 %d개)\n",
+                        " %-8s %6d원 (빨대 %s)\n",
                         product.getName(),
                         product.getPrice(),
-                        ((Drink) product).isHasStraw() ? "있음" : "없음"
+                        ((Drink) product).hasStraw() ? "있음" : "없음"
                 );
             }
         }
     }
 
-    private int calculateTotalPrice() {
+    protected int calculateTotalPrice() {
         int totalPrice = 0;
         for (Product product : items) totalPrice += product.getPrice();
         return totalPrice;
@@ -88,21 +89,27 @@ public class Cart {
 //        Product product = id로 제품 찾기
         Product product = productRepository.findById(productId);
 
+//        새로운 객체 생성
+        Product newProduct;
+        if (product instanceof Hamburger) newProduct = new Hamburger((Hamburger) product);
+        else if (product instanceof Side) newProduct = new Side((Side) product);
+        else newProduct = new Drink((Drink) product);
+
 //        상품 옵션 설정 chooseOption()
-        chooseOption(product);
+        chooseOption(newProduct);
 
 //        if (product가 Hamburger의 인스턴스고, isBurgerSet이 true면) {
 //            product = composeSet() // 세트구성
 //        }
-        if (product instanceof Hamburger) {
-            Hamburger hamburger = (Hamburger) product;
-            if (hamburger.isBurgerSet()) product = composeSet(hamburger);
+        if (newProduct instanceof Hamburger) {
+            Hamburger hamburger = (Hamburger) newProduct;
+            if (hamburger.isBurgerSet()) newProduct = composeSet(hamburger);
         }
 
 //        items에 product 추가
         Product[] newItems = new Product[items.length + 1];
         System.arraycopy(items, 0, newItems, 0, items.length);
-        newItems[newItems.length - 1] = product;
+        newItems[newItems.length - 1] = newProduct;
         items = newItems;
 
         System.out.printf("[📣] %s를(을) 장바구니에 담았습니다.\n", product.getName());
@@ -139,19 +146,21 @@ public class Cart {
 
         String sideId = scanner.nextLine();
         Side side = (Side) productRepository.findById(Integer.parseInt(sideId));
-        chooseOption(side);
+        Side newSide = new Side((Side) side);
+        chooseOption(newSide);
 
         System.out.println("음료를 골라주세요");
         menu.printDrinks(false);
 
         String drinkId = scanner.nextLine();
         Drink drink = (Drink) productRepository.findById(Integer.parseInt(drinkId));
-        chooseOption(drink);
+        Drink newDrink = new Drink((Drink) drink);
+        chooseOption(newDrink);
 
         String name = hamburger.getName() + "세트";
         int price = hamburger.getBurgerSetPrice();
         int kcal = hamburger.getKcal() + side.getKcal() + drink.getKcal();
 
-        return new BurgerSet(name, price, kcal, hamburger, side, drink);
+        return new BurgerSet(name, price, kcal, hamburger, newSide, newDrink);
     }
 }
